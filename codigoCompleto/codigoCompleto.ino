@@ -174,23 +174,24 @@ void aguardando(){ // Função que instancia as letras personalizadas no módulo
 }
 
 void loop() {
-    char key = keypad.getKey(); //Aqui pegamos a tecla digitada no teclado
-    
-    if (key) {
-        Serial.println(key); // Mostramos a tecla digitada
-        if (key == '#') { // Caso o usuário pressione a tecla # (neste caso o # está atuando como o Enter)
-            int codigoDigitado = checkPassword(); // Armazena as informações do id em uma variavel
-            Serial.println(codigoDigitado); // Exibe a variavel com o id
-            bool autorizado = consultarApi(codigoDigitado); // Verifica na API se o id digitado corresponde ao de algum usuário dentro da APi
-            if (autorizado) { // Se o id digitado corresponder, abre o modo de cadastramento para a biometria
-                getFingerprintEnroll(codigoDigitado);
-                enviarParaApi("Vinicio", "vinicio.eufrazio@aluno.ifsertao-pe.edu.br", codigoDigitado);
-            } else {// caso contrário não permite cadastrar
-                Serial.println("ID INVÁLIDO");
-            }
+  getFingerprintIDez();
+  char key = keypad.getKey(); //Aqui pegamos a tecla digitada no teclado
+  
+  if (key) {
+    Serial.println(key); // Mostramos a tecla digitada
+    if (key == '#') { // Caso o usuário pressione a tecla # (neste caso o # está atuando como o Enter)
+      int codigoDigitado = checkPassword(); // Armazena as informações do id em uma variavel
+      Serial.println(codigoDigitado); // Exibe a variavel com o id
+      bool autorizado = consultarApi(codigoDigitado); // Verifica na API se o id digitado corresponde ao de algum usuário dentro da APi
+      if (autorizado) { // Se o id digitado corresponder, abre o modo de cadastramento para a biometria
+        getFingerprintEnroll(codigoDigitado);
+        // enviarParaApi("Vinicio", "vinicio.eufrazio@aluno.ifsertao-pe.edu.br", codigoDigitado);
+      }else {// caso contrário não permite cadastrar
+        Serial.println("ID INVÁLIDO");
+      }
 
-        }
     }
+  }
 }
 
 void enviarParaApi(String nome, String email, int idBiometria) { //Função para enviar o acesso para a API
@@ -424,6 +425,7 @@ int getFingerprintIDez() {
     aguardando();
     return -1;
   }  
+  enviarParaApi("Vinicio", "vinicio.eufrazio@aluno.ifsertao-pe.edu.br", finger.fingerID);
   lcd.clear();
   digitalWrite(rele, HIGH);
   digitalWrite(12, LOW);
@@ -443,6 +445,7 @@ int getFingerprintIDez() {
   // Serial.print("Liberar Acesso?");
   // lcd.setCursor(1,1);
   // Serial.print("Insira o Dedo!");
+ 
    return finger.fingerID; 
 }
 
