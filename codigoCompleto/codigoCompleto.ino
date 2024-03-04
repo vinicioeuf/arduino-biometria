@@ -194,12 +194,13 @@ void loop() {
   }
 }
 
-void enviarParaApi(String nome, String email, int idBiometria) { //Função para enviar o acesso para a API
+void enviarParaApi(String nome, String email, int idBiometria, String foto) { //Função para enviar o acesso para a API
   DynamicJsonDocument envia(2048);
 
   envia["nome"] = nome;//Cria o campo nome no arquivo json que será enviado
   envia["email"] = email;//Cria o campo email no arquivo json que será enviado
   envia["idBiometria"] = idBiometria;//Cria o campo idMatricula no arquivo json que será enviado
+  envia["foto"] = foto;
   String jsonStrings; //Cria uma variavel
   serializeJson(envia, jsonStrings); //Atribui os valores criados anteriormente a variavel criada agora
   // Serial.println(jsonStrings);
@@ -396,6 +397,81 @@ String pegaNome(int idBiometria) {// função que vai fazer o tratamento dos dad
     client.stop();
 }
 
+String pegaFoto(int idBiometria) {// função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
+    int index = 0;
+    while (true) {
+        EthernetClient client;
+        client.setTimeout(10000);
+        if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {
+            Serial.println(F("Connection failed"));
+            return "erro";
+        }
+
+        Serial.println(F("Connected!"));
+
+        // Send HTTP request
+        client.println(F("GET / HTTP/1.0"));
+        client.println(F("Host: api-labmaker-db7c20aa74d8.herokuapp.com"));
+        
+        client.println(F("Connection: close"));
+        if (client.println() == 0) {
+            Serial.println(F("Failed to send request"));
+            client.stop();
+            return "erro";
+        }
+
+        // Check HTTP status
+        char status[32] = {0};
+        client.readBytesUntil('\r', status, sizeof(status));
+        if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
+            Serial.print(F("Unexpected response: "));
+            Serial.println(status);
+            client.stop();
+            return "erro";
+            
+        }
+
+        // Skip HTTP headers
+        char endOfHeaders[] = "\r\n\r\n";
+        if (!client.find(endOfHeaders)) {
+            Serial.println(F("Invalid response"));
+            client.stop();
+            return "erro";
+            
+        }
+
+        // Allocate the JSON document
+        // Use arduinojson.org/v6/assistant to compute the capacity.
+        const size_t capacity = 2048;
+        DynamicJsonDocument doc(capacity);
+
+        // Parse JSON object
+        DeserializationError error = deserializeJson(doc, client);
+        if (error) {
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.f_str());
+            client.stop();
+            return "erro";
+            
+        }
+        JsonObject Usuario = doc["usuarios"][index].as<JsonObject>();
+        // Extract values
+        Serial.println(F("Response:"));
+        String foto = Usuario["foto"].as<String>();
+        int id = Usuario["idBiometria"].as<int>();
+
+        if (id == idBiometria) {
+            return foto;
+            break;
+        }
+        index++;
+    }
+    return "erro";
+    
+
+    client.stop();
+}
+
 
 String consultarApiAcesso(int idBiometria) {// função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
     int index = 0;
@@ -579,8 +655,9 @@ int getFingerprintIDez() {
 
   String nome = pegaNome(finger.fingerID);
   String email = consultarApiAcesso(finger.fingerID);
+  String foto = pegaFoto(finger.fingerID);
   if (email != "erro"){
-    enviarParaApi(nome, email, finger.fingerID);
+    enviarParaApi(nome, email, finger.fingerID, foto);
   }
   lcd.clear();
   digitalWrite(rele, HIGH);
