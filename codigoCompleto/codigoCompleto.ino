@@ -321,6 +321,156 @@ bool consultarApi(int codigoDigitado) {// função que vai fazer o tratamento do
 
     client.stop();
 }
+String pegaNome(int idBiometria) {// função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
+    int index = 0;
+    while (true) {
+        EthernetClient client;
+        client.setTimeout(10000);
+        if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {
+            Serial.println(F("Connection failed"));
+            return "erro";
+        }
+
+        Serial.println(F("Connected!"));
+
+        // Send HTTP request
+        client.println(F("GET / HTTP/1.0"));
+        client.println(F("Host: api-labmaker-db7c20aa74d8.herokuapp.com"));
+        
+        client.println(F("Connection: close"));
+        if (client.println() == 0) {
+            Serial.println(F("Failed to send request"));
+            client.stop();
+            return "erro";
+        }
+
+        // Check HTTP status
+        char status[32] = {0};
+        client.readBytesUntil('\r', status, sizeof(status));
+        if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
+            Serial.print(F("Unexpected response: "));
+            Serial.println(status);
+            client.stop();
+            return "erro";
+            
+        }
+
+        // Skip HTTP headers
+        char endOfHeaders[] = "\r\n\r\n";
+        if (!client.find(endOfHeaders)) {
+            Serial.println(F("Invalid response"));
+            client.stop();
+            return "erro";
+            
+        }
+
+        // Allocate the JSON document
+        // Use arduinojson.org/v6/assistant to compute the capacity.
+        const size_t capacity = 2048;
+        DynamicJsonDocument doc(capacity);
+
+        // Parse JSON object
+        DeserializationError error = deserializeJson(doc, client);
+        if (error) {
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.f_str());
+            client.stop();
+            return "erro";
+            
+        }
+        JsonObject Usuario = doc["usuarios"][index].as<JsonObject>();
+        // Extract values
+        Serial.println(F("Response:"));
+        String nome = Usuario["nome"].as<String>();
+        int id = Usuario["idBiometria"].as<int>();
+
+        if (id == idBiometria) {
+            return nome;
+            break;
+        }
+        index++;
+    }
+    return "erro";
+    
+
+    client.stop();
+}
+
+
+String consultarApiAcesso(int idBiometria) {// função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
+    int index = 0;
+    while (true) {
+        EthernetClient client;
+        client.setTimeout(10000);
+        if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {
+            Serial.println(F("Connection failed"));
+            return "erro";
+        }
+
+        Serial.println(F("Connected!"));
+
+        // Send HTTP request
+        client.println(F("GET / HTTP/1.0"));
+        client.println(F("Host: api-labmaker-db7c20aa74d8.herokuapp.com"));
+        
+        client.println(F("Connection: close"));
+        if (client.println() == 0) {
+            Serial.println(F("Failed to send request"));
+            client.stop();
+            return "erro";
+        }
+
+        // Check HTTP status
+        char status[32] = {0};
+        client.readBytesUntil('\r', status, sizeof(status));
+        if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
+            Serial.print(F("Unexpected response: "));
+            Serial.println(status);
+            client.stop();
+            return "erro";
+            
+        }
+
+        // Skip HTTP headers
+        char endOfHeaders[] = "\r\n\r\n";
+        if (!client.find(endOfHeaders)) {
+            Serial.println(F("Invalid response"));
+            client.stop();
+            return "erro";
+            
+        }
+
+        // Allocate the JSON document
+        // Use arduinojson.org/v6/assistant to compute the capacity.
+        const size_t capacity = 2048;
+        DynamicJsonDocument doc(capacity);
+
+        // Parse JSON object
+        DeserializationError error = deserializeJson(doc, client);
+        if (error) {
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.f_str());
+            client.stop();
+            return "erro";
+            
+        }
+        JsonObject Usuario = doc["usuarios"][index].as<JsonObject>();
+        // Extract values
+        Serial.println(F("Response:"));
+        String email = Usuario["email"].as<String>();
+        int id = Usuario["idBiometria"].as<int>();
+
+        if (id == idBiometria) {
+            return email;
+            break;
+        }
+        index++;
+    }
+    return "erro";
+    
+
+    client.stop();
+}
 
 int checkPassword() {
     char enteredPassword[2]; // Aumentado para incluir o caractere nulo de terminação de string
@@ -405,7 +555,8 @@ int getFingerprintIDez() {
   if (p != FINGERPRINT_OK)  return -1;
 
   p = finger.fingerFastSearch();
-  if (p != FINGERPRINT_OK){
+  if (p != FINGERPRINT_OK)
+  {
     tone(10, 4500);
     lcd.setCursor(0,0);
     for(int i = 0; i < 6; i++){
@@ -425,15 +576,20 @@ int getFingerprintIDez() {
     aguardando();
     return -1;
   }  
-  enviarParaApi("Vinicio", "vinicio.eufrazio@aluno.ifsertao-pe.edu.br", finger.fingerID);
+
+  String nome = pegaNome(finger.fingerID);
+  String email = consultarApiAcesso(finger.fingerID);
+  if (email != "erro"){
+    enviarParaApi(nome, email, finger.fingerID);
+  }
   lcd.clear();
   digitalWrite(rele, HIGH);
   digitalWrite(12, LOW);
   tone(10, 2500);//Ligando o buzzer com uma frequência de 1500 Hz.
   lcd.setCursor(2,0);
-  Serial.print("Bem vindo(a)");
+  Serial.println("Bem vindo(a)" + nome);
   lcd.setCursor(0,1);
-  Serial.print(nome);
+  // Serial.print(nome);
   delay(1500);
   noTone(10);
   delay(1500);
