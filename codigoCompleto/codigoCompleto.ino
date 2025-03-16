@@ -1,4 +1,3 @@
-
 #include <Wire.h>
 #include <Keypad.h>
 #include <Adafruit_Fingerprint.h>
@@ -522,7 +521,8 @@ int getFingerprintIDez() {
 
   p = finger.fingerFastSearch();
   if (p != FINGERPRINT_OK) {
-    tone(buzzer, 4500);
+    // tone(buzzer, 4500);
+
     lcd.setCursor(0, 0);
     for (int i = 0; i < 6; i++) {
       digitalWrite(ledVermelho, LOW);
@@ -537,7 +537,7 @@ int getFingerprintIDez() {
     delay(50);
     digitalWrite(ledVermelho, HIGH);
     delay(1500);
-    noTone(buzzer);
+    // noTone(buzzer);
     aguardando();
     return -1;
   }
@@ -545,11 +545,11 @@ int getFingerprintIDez() {
 
   String* dados = consultarApiAcesso(finger.fingerID);
   if (dados[0] != "Erro") {
-    enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Entrou");
+    enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Saiu");
     
   }
   
-  tone(buzzer, 2500);  //Ligando o buzzer com uma frequência de 1500 Hz.
+  // tone(buzzer, 2500);  //Ligando o buzzer com uma frequência de 1500 Hz.
   lcd.clear();
   digitalWrite(rele, HIGH);
   
@@ -557,13 +557,13 @@ int getFingerprintIDez() {
   digitalWrite(ledVerde, HIGH);
   
   lcd.setCursor(2, 0);
-  lcd.println("Bem vindo(a)");
+  lcd.println("Até mais");
   lcd.setCursor(0, 1);
   lcd.println(dados[0]);
   // lcd.print(nome);
   delay(1500);
   digitalWrite(ledVerde, LOW);
-  noTone(buzzer);
+  // noTone(buzzer);
   delay(1500);
   digitalWrite(rele, LOW);
   
