@@ -222,9 +222,9 @@ void aguardando() {          // Função que instancia as letras personalizadas 
   lcd.write((uint8_t)4);
 
   lcd.setCursor(3, 0);
-  lcd.print("Aguardando o ");   // Imprime a mensagem fixa
+  lcd.print("Aguardando");   // Imprime a mensagem fixa
   lcd.setCursor(3, 1);             // seta o texto a seguir a partir do oitavo índice do lcd
-  lcd.print("Acesso ao Lab ");  // Aqui fica impressa a data (como não estou com o módulo de relógio estou imprimindo este texto para simular)
+  lcd.print(" ... ");  // Aqui fica impressa a data (como não estou com o módulo de relógio estou imprimindo este texto para simular)
 }
 
 void aguardando2() {          // Função que instancia as letras personalizadas no módulo LCD
