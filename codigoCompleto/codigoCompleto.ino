@@ -145,32 +145,41 @@ String nome = "Vini";
 char cadstrar = '#';
 String senhaDigitada;
 
+int flag=0;
 
 void setup()
 {
-  
-  while (!Serial) continue;  // For Yun/Leo/Micro/Zero/...
-
-  byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  //Definição do endereço MAC do módulo Ethernet
-  if (!Ethernet.begin(mac)) {                           //Verifica se o endereço MAC condiz com o do proprio módulo ethernet
-    lcd.println(F("Failed to configure Ethernet"));
-    return;
-  }
-  delay(1000);  // Aguarda 1 segundo
-  lcd.println(F("Conectando..."));  // Imprime Conectando...
-
-  pinMode(signalPin, OUTPUT);
-  Serial.begin(9600);  //Inicia o serial na frequencia de 9600
   lcd.init();          // Inicia o módulo lcd
   lcd.backlight();     // Inicia a luz de fundo do módulo lcd
   lcd2.init();
   lcd2.backlight();
-  aguardando();        //Chama função aguardando que inicia o objeto para imprimir as letras personalizadas
-  aguardando2();
+  lcd.println(F("Conectando..."));  // Imprime Conectando...
+  lcd2.println(F("Conectando..."));
+
+  pinMode(signalPin, OUTPUT);
+  Serial.begin(9600);  //Inicia o serial na frequencia de 9600
+  delay(1000); 
+
   pinMode(ledVerde, OUTPUT);
   pinMode(ledAmarelo, OUTPUT);
   pinMode(ledVermelho, OUTPUT);
   pinMode(rele, OUTPUT);
+  
+  while (!Serial) continue;  // For Yun/Leo/Micro/Zero/...
+
+  byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  //Definição do endereço MAC do módulo Ethernet
+  if (!Ethernet.begin(mac)) {   //Verifica se o endereço MAC condiz com o do proprio módulo ethernet
+    lcd.clear();        
+    lcd.println(F("Failed to configure Ethernet"));
+    lcd2.clear();  
+    lcd2.println(F("Failed to configure Ethernet"));
+    flag = 1;
+    return;
+  }
+  // Aguarda 1 segundo
+  aguardando();        //Chama função aguardando que inicia o objeto para imprimir as letras personalizadas
+  aguardando2();
+  
 
   // set the data rate for the sensor serial port
   finger.begin(57600);
@@ -191,6 +200,9 @@ void setup()
     while (!getFingerprintEnroll(0))
       ;
   }
+  
+
+  
 }
 
 uint8_t readnumber(void) {
@@ -251,8 +263,24 @@ void aguardando2() {          // Função que instancia as letras personalizadas
   lcd2.setCursor(3, 1);             // seta o texto a seguir a partir do oitavo índice do lcd2
   lcd2.print("Acesso ao Lab ");  // Aqui fica impressa a data (como não estou com o módulo de relógio estou imprimindo este texto para simular)
 }
-void loop()                     // run over and over again
+void loop()      
+
+               // run over and over again
 {
+ 
+  if(flag==1){ // fica tentando reconectar ate conseguir
+   if(Ethernet.begin(mac)){
+    aguardando();
+    aguardando2();
+    flag=0;
+   } else{
+    lcd.clear();
+    lcd.print("conectando");
+    lcd2.clear();
+    lcd2.print("conectando");
+   }
+   
+  }
   getFingerprintIDez();
   char key = keypad.getKey();  //Aqui pegamos a tecla digitada no teclado
 
