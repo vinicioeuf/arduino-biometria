@@ -197,7 +197,7 @@ void setup()
     }
     lcd.clear();
     lcd.print("Gravando ID: " + id);  // Mostra ao usuário que a digital será gravada em determinado ID
-    while (!getFingerprintEnroll(0))
+    while (!getFingerprintEnroll(0) && !getFingerprintEnroll2(0))
       ;
   }
   
@@ -265,7 +265,7 @@ void aguardando2() {          // Função que instancia as letras personalizadas
 }
 void loop()      
 
-               // run over and over again
+// run over and over again
 {
  
   if(flag==1){ // fica tentando reconectar ate conseguir
@@ -282,6 +282,7 @@ void loop()
    
   }
   getFingerprintIDez();
+  getFingerprintIDez2();
   char key = keypad.getKey();  //Aqui pegamos a tecla digitada no teclado
 
   if (key) {
@@ -318,7 +319,7 @@ void loop()
       lcd2.println(codigoDigitado);                  // Exibe a variavel com o id
       bool autorizado = consultarApi(codigoDigitado);  // Verifica na API se o id digitado corresponde ao de algum usuário dentro da APi
       if (autorizado) {                                // Se o id digitado corresponder, abre o modo de cadastramento para a biometria
-        getFingerprintEnroll(codigoDigitado);
+        getFingerprintEnroll2(codigoDigitado);
         aguardando2();
         // enviarParaApi("Vinicio", "vinicio.eufrazio@aluno.ifsertao-pe.edu.br", codigoDigitado);
       } else {  // caso contrário não permite cadastrar
@@ -334,29 +335,6 @@ void loop()
     }
   }
 
-  // Serial.println("Escolha o leitor para cadastro [1] [2]:");
-  // nLeitor = readnumber();
-  // if(nLeitor == 1){
-  //   Serial.println("Leitor 1!");
-  //   Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
-  //   id = readnumber();
-  //   if (id == 0) {// ID #0 not allowed, try again!
-  //     return;
-  //   }
-  //   Serial.print("Enrolling ID #");
-  //   Serial.println(id);
-  //   while (! getFingerprintEnroll() );
-  // }else{
-  //   Serial.println("Leitor 2!");
-  //   Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
-  //   id = readnumber();
-  //   if (id == 0) {// ID #0 not allowed, try again!
-  //     return;
-  //   }
-  //   Serial.print("Enrolling ID #");
-  //   Serial.println(id);
-  //   while (! getFingerprintEnroll2() );
-  // }
   
 }
 int checkPassword() {
@@ -411,11 +389,13 @@ void enviarParaApi(String nome, String email, String foto, int idBiometria, Stri
   client.setTimeout(10000);
   if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {  //Se não existir uma conexão exibe que a conexão falhou
     lcd.println(F("Connection failed"));
+    lcd2.println(F("Connection failed"));
     
     return;
   }
 
   lcd.println(F("Connected!"));
+  lcd2.println(F("Connected!"));
 
   // Send HTTP request
   client.println(F("POST /addacessos HTTP/1.0"));                      //Prepara para enviar um POST pelo link /addacessos
@@ -430,6 +410,7 @@ void enviarParaApi(String nome, String email, String foto, int idBiometria, Stri
 
   if (client.println() == 0) {  // Verifica se a requisição foi feita com sucesso
     lcd.println(F("Failed to send request"));
+    lcd2.println(F("Failed to send request"));
     
     client.stop();
     return;
@@ -439,17 +420,21 @@ void enviarParaApi(String nome, String email, String foto, int idBiometria, Stri
   client.readBytesUntil('\r', status, sizeof(status));
   if (strcmp(status, "HTTP/1.1 200 OK") != 0) {  // Verifica se os dados foram enviados
     lcd.print(F("Unexpected response: "));
+    lcd2.print(F("Unexpected response: "));
     lcd.println(status);
+    lcd2.println(status);
     client.stop();
     return;
   } else {  //Se forem enviados entra nesse else
     lcd.println("Adicionado com sucesso");
+    lcd2.println("Adicionado com sucesso");
     
   }
 
   char endOfHeaders[] = "\r\n\r\n";
   if (!client.find(endOfHeaders)) {
     lcd.println(F("Invalid response"));
+    lcd2.println(F("Invalid response"));
     client.stop();
     return;
   }
@@ -468,6 +453,7 @@ bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento 
     }
 
     lcd.println(F("Connected!"));
+    lcd2.println(F("Connected!"));
 
     // Send HTTP request
     client.println(F("GET / HTTP/1.0"));
@@ -485,7 +471,9 @@ bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento 
     client.readBytesUntil('\r', status, sizeof(status));
     if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
       lcd.print(F("Unexpected response: "));
+      lcd2.print(F("Unexpected response: "));
       lcd.println(status);
+      lcd2.println(status);
       client.stop();
       return false;
     }
@@ -494,6 +482,7 @@ bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento 
     char endOfHeaders[] = "\r\n\r\n";
     if (!client.find(endOfHeaders)) {
       lcd.println(F("Invalid response"));
+      lcd2.println(F("Invalid response"));
       client.stop();
       return false;
     }
@@ -507,13 +496,16 @@ bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento 
     DeserializationError error = deserializeJson(doc, client);
     if (error) {
       lcd.print(F("deserializeJson() failed: "));
+      lcd2.print(F("deserializeJson() failed: "));
       lcd.println(error.f_str());
+      lcd2.println(error.f_str());
       client.stop();
       return false;
     }
     JsonObject Usuario = doc["usuarios"][index].as<JsonObject>();
     // Extract values
     lcd.println(F("Response:"));
+    lcd2.println(F("Response:"));
     String email = Usuario["email"].as<String>();
     int id = Usuario["idBiometria"].as<int>();
 
@@ -537,10 +529,12 @@ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o trata
     client.setTimeout(10000);
     if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {
       lcd.println(F("Connection failed"));
+      lcd2.println(F("Connection failed"));
       Nome_Email[0] = "Erro";
     }
 
     lcd.println(F("Connected!"));
+    lcd2.println(F("Connected!"));
 
     // Send HTTP request https://<your-deployment-host>
     client.println(F("GET / HTTP/1.0"));
@@ -549,6 +543,7 @@ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o trata
     client.println(F("Connection: close"));
     if (client.println() == 0) {
       lcd.println(F("Failed to send request"));
+      lcd2.println(F("Failed to send request"));
       client.stop();
       Nome_Email[0] = "Erro";
     }
@@ -558,7 +553,9 @@ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o trata
     client.readBytesUntil('\r', status, sizeof(status));
     if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
       lcd.print(F("Unexpected resdsponse: "));
+      lcd2.print(F("Unexpected resdsponse: "));
       lcd.println(status);
+      lcd2.println(status);
       client.stop();
       Nome_Email[0] = "Erro";
     }
@@ -567,6 +564,7 @@ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o trata
     char endOfHeaders[] = "\r\n\r\n";
     if (!client.find(endOfHeaders)) {
       lcd.println(F("Invalid response"));
+      lcd2.println(F("Invalid response"));
       client.stop();
       Nome_Email[0] = "Erro";
     }
@@ -580,13 +578,16 @@ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o trata
     DeserializationError error = deserializeJson(doc, client);
     if (error) {
       lcd.print(F("deserializeJson() failed: "));
+      lcd2.print(F("deserializeJson() failed: "));
       lcd.println(error.f_str());
+      lcd2.println(error.f_str());
       client.stop();
       Nome_Email[0] = "Erro";
     }
     JsonObject Usuario = doc["usuarios"][index].as<JsonObject>();
     // Extract values
     lcd.println(F("Response:"));
+    lcd2.println(F("Response:"));
     String email = Usuario["email"].as<String>();
     String nome = Usuario["nome"].as<String>();
     String foto = Usuario["foto"].as<String>();
