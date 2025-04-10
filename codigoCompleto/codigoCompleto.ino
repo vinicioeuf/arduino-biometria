@@ -387,7 +387,7 @@ void enviarParaApi(String nome, String email, String foto, int idBiometria, Stri
 
   EthernetClient client;  //inicia o client, a api
   client.setTimeout(10000);
-  if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {  //Se não existir uma conexão exibe que a conexão falhou
+  if (!client.connect("localhost", 3000)) {  //Se não existir uma conexão exibe que a conexão falhou
     lcd.println(F("Connection failed"));
     lcd2.println(F("Connection failed"));
     
@@ -399,7 +399,7 @@ void enviarParaApi(String nome, String email, String foto, int idBiometria, Stri
 
   // Send HTTP request
   client.println(F("POST /addacessos HTTP/1.0"));                      //Prepara para enviar um POST pelo link /addacessos
-  client.println(F("Host: api-labmaker-db7c20aa74d8.herokuapp.com"));  // Define o link do host
+  client.println(F("Host: localhost"));  // Define o link do host
   client.println(F("Content-Type: application/json"));                 //Define o formato que será enviado como json
   client.print(F("Content-Length: "));
   client.println(jsonStrings.length());
@@ -447,7 +447,7 @@ bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento 
   while (true) {
     EthernetClient client;
     client.setTimeout(10000);
-    if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {
+    if (!client.connect("localhost", 3000)) {
       lcd.println(F("Connection failed"));
       return false;
     }
@@ -457,7 +457,7 @@ bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento 
 
     // Send HTTP request
     client.println(F("GET / HTTP/1.0"));
-    client.println(F("Host: api-labmaker-db7c20aa74d8.herokuapp.com"));
+    client.println(F("Host: localhost"));
 
     client.println(F("Connection: close"));
     if (client.println() == 0) {
@@ -527,7 +527,7 @@ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o trata
     EthernetClient client;
     
     client.setTimeout(10000);
-    if (!client.connect("api-labmaker-db7c20aa74d8.herokuapp.com", 80)) {
+    if (!client.connect("localhost", 3000)) {
       lcd.println(F("Connection failed"));
       lcd2.println(F("Connection failed"));
       Nome_Email[0] = "Erro";
@@ -538,7 +538,7 @@ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o trata
 
     // Send HTTP request https://<your-deployment-host>
     client.println(F("GET / HTTP/1.0"));
-    client.println(F("Host: api-labmaker-db7c20aa74d8.herokuapp.com"));
+    client.println(F("Host: localhost"));
     
     client.println(F("Connection: close"));
     if (client.println() == 0) {
