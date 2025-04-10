@@ -102,8 +102,8 @@ char keys[ROWS][COLS] = {
   { '7', '8', '9' },
   { '*', '0', '#' }
 };                                        // Padrão do teclado que estamos usando
-byte rowPins[ROWS] = { 32, 33, 34, 35 };  // Pinos de conexão referente a cada linha
-byte colPins[COLS] = { 36, 37, 38 };      // Pinos de conexão referente a cada coluna
+byte rowPins[ROWS] = { 30, 32, 34, 36 };  // Pinos de conexão referente a cada linha
+byte colPins[COLS] = { 38, 40, 42 };      // Pinos de conexão referente a cada coluna
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);  // Com as informações anteriores do teclado, aqui instanciamos o teclado
 int getFingerprintIDez();
@@ -133,7 +133,7 @@ uint8_t nLeitor;
 int ledVerde = 13;
 int ledAmarelo = 12;
 int ledVermelho = 11;
-int buzzer = 10;
+int buzzer = 26;// 10
 int ledVerde2 = 8;
 int ledAmarelo2 = 7;
 int ledVermelho2 = 6;
