@@ -134,12 +134,12 @@ int ledVerde = 13;
 int ledAmarelo = 12;
 int ledVermelho = 11;
 int buzzer = 26;// 10
-int ledVerde2 = 8;
-int ledAmarelo2 = 7;
-int ledVermelho2 = 6;
-int buzzer2 = 5;
+int ledVerde2 = 51;
+int ledAmarelo2 = 49;
+int ledVermelho2 = 47;
+int buzzer2 = 53;
 int pinLed = 12;
-int rele = 9;
+int rele = 8;
 
 String nome = "Vini";
 char cadstrar = '#';
