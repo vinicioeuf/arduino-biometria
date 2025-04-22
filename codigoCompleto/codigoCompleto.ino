@@ -1,6 +1,3 @@
-
-
-
 /***************************************************
   This is an example sketch for our optical Fingerprint sensor
 
@@ -29,24 +26,18 @@
  #include <Ethernet.h>
  #include <HttpClient.h>
  #include <ArduinoJson.h>
- #include <MySQL_Connection.h>
- #include <MySQL_Cursor.h>
- #include <MySQL_Encrypt_Sha1.h>
- #include <MySQL_Packet.h>
+ 
+ #include <SPI.h>
+ #include <Ethernet.h>
+ #include <HttpClient.h>
+ #include <ArduinoJson.h>
+ 
  
  byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  // Definição do endereço MAC do módulo Ethernet
- IPAddress ip(35, 212, 21, 168);                       // IP do Servidor local do módulo Ethernet
- IPAddress server_addr(35, 212, 120, 123);
+ IPAddress ip(192, 168, 2, 182);                       // IP do Servidor local do módulo Ethernet
  
  EthernetClient client;    // Definição do objeto client (requisição a API)
  HttpClient http(client);  // Definição do objeto http (forma como o programa fará a execução)
- const char* db_host = "mysql.railway.internal";
- const int db_port = 33408;
- const char* db_user = "root";
- const char* db_password = "gIBTaShRZLYoQrUAOlFOGkydNFIecIzM";
- const char* db_name = "railway";
- char user[] = "root"; // substitua
- char password[] = "gIBTaShRZLYoQrUAOlFOGkydNFIecIzM"; // substitua
  
  unsigned long startTime = 0;         //
  LiquidCrystal_I2C lcd(0x26, 16, 2);  // Padrão do módulo LCD 16 caracteres em linha, contendo duas colunas
@@ -153,7 +144,7 @@
  String nome = "Vini";
  char cadstrar = '#';
  String senhaDigitada;
- MySQL_Connection conn((Client *)&client);
+ 
  int flag=0;
  
  void setup()
@@ -338,7 +329,7 @@
      }
      else{
        Serial.print("SENHA INCORRETA");
-       delay(3000);
+       delay(80);
        aguardando();
        aguardando2();
      }
@@ -382,86 +373,239 @@
  }
    return senha;
  }
- void enviarParaApi(String nome, String email, String foto, int idBiometria, String tipo) {
-   if (conn.connect(server_addr, 3306, user, password)) {
-     Serial.println("Conectado ao banco de dados.");
+ void enviarParaApi(String nome, String email, String foto, int idBiometria, String tipo) {  //Função para enviar o acesso para a API
+   DynamicJsonDocument envia(2048);
  
-     char query[512];
-     sprintf(query,
-             "INSERT INTO acessos (nome, email, foto, idBiometria, tipo) VALUES ('%s', '%s', '%s', %d, '%s')",
-             nome.c_str(), email.c_str(), foto.c_str(), idBiometria, tipo.c_str());
+   envia["nome"] = nome;                //Cria o campo nome no arquivo json que será enviado
+   envia["email"] = email;              //Cria o campo email no arquivo json que será enviado
+   envia["idBiometria"] = idBiometria;  //Cria o campo idMatricula no arquivo json que será enviado
+   envia["foto"] = foto;
+   envia["tipo"] = tipo;
+   String jsonStrings;                 //Cria uma variavel
+   serializeJson(envia, jsonStrings);  //Atribui os valores criados anteriormente a variavel criada agora
+   // Serial.println(jsonStrings);
  
-     MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
-     cur_mem->execute(query);
-     delete cur_mem;
- 
-     Serial.println("Acesso registrado com sucesso.");
-     lcd2.println("Acesso registrado");
+   EthernetClient client;  //inicia o client, a api
+   client.setTimeout(10000);
+   if (!client.connect("exultant-plum-mandolin.glitch.me", 80)) {  //Se não existir uma conexão exibe que a conexão falhou
+     Serial.println(F("Connection failed"));
+     lcd2.println(F("Connection failed"));
      
-     conn.close();
-   } else {
-     Serial.println("Falha na conexão com o banco1.");
-     lcd2.println("Falha no banco");
+     return;
    }
+ 
+   Serial.println(F("Connected1!"));
+   lcd2.println(F("Connected!"));
+ 
+   // Send HTTP request
+   client.println(F("POST /addacessos HTTP/1.0"));                      //Prepara para enviar um POST pelo link /addacessos
+   client.println(F("Host: exultant-plum-mandolin.glitch.me"));  // Define o link do host
+   client.println(F("Content-Type: application/json"));                 //Define o formato que será enviado como json
+   client.print(F("Content-Length: "));
+   client.println(jsonStrings.length());
+   client.println(F("Connection: close"));
+   client.println();
+ 
+   client.println(jsonStrings);  //Envia os dados para a API
+ 
+   if (client.println() == 0) {  // Verifica se a requisição foi feita com sucesso
+     Serial.println(F("Failed to send request"));
+     lcd2.println(F("Failed to send request"));
+     
+     client.stop();
+     return;
+   }
+ 
+   char status[32] = { 0 };
+   client.readBytesUntil('\r', status, sizeof(status));
+   if (strcmp(status, "HTTP/1.1 200 OK") != 0) {  // Verifica se os dados foram enviados
+     Serial.print(F("Unexpected response: "));
+     lcd2.print(F("Unexpected response: "));
+     Serial.println(status);
+     lcd2.println(status);
+     client.stop();
+     return;
+   } else {  //Se forem enviados entra nesse else
+     Serial.println("Adicionado com sucesso");
+     lcd2.println("Adicionado com sucesso");
+     
+   }
+ 
+   char endOfHeaders[] = "\r\n\r\n";
+   if (!client.find(endOfHeaders)) {
+     Serial.println(F("Invalid response"));
+     lcd2.println(F("Invalid response"));
+     client.stop();
+     return;
+   }
+ 
+   client.stop();
  }
  
- bool consultarApi(int codigoDigitado) {
-   if (conn.connect(server_addr, 33408, user, password)) {
-     char query[256];
-     sprintf(query, "SELECT idBiometria FROM usuarios WHERE idBiometria = %d", codigoDigitado);
- 
-     MySQL_Cursor *cur = new MySQL_Cursor(&conn);
-     cur->execute(query);
- 
-     column_names *cols = cur->get_columns();
-     row_values *row = cur->get_next_row();
- 
-     bool encontrado = row != NULL;
- 
-     delete cur;
-     conn.close();
- 
-     return encontrado;
-   } else {
-     Serial.println("Erro ao conectar ao banco2.");
-     lcd2.println("Erro no banco");
-     return false;
-   }
- }
- 
- String* consultarApiAcesso(int idBiometria) {
-   String* Nome_Email = new String[3];
- 
-   if (conn.connect(server_addr, 3306, user, password)) {
-     char query[256];
-     sprintf(query, "SELECT nome, email, foto FROM usuarios WHERE idBiometria = %d", idBiometria);
- 
-     MySQL_Cursor *cur = new MySQL_Cursor(&conn);
-     cur->execute(query);
- 
-     column_names *cols = cur->get_columns();
-     row_values *row = cur->get_next_row();
- 
-     if (row) {
-       Nome_Email[0] = row->values[0]; // nome
-       Nome_Email[1] = row->values[1]; // email
-       Nome_Email[2] = row->values[2]; // foto
-     } else {
-       Nome_Email[0] = "";
-       Nome_Email[1] = "";
-       Nome_Email[2] = "";
+ bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
+   int index = 0;
+   while (true) {
+     EthernetClient client;
+     client.setTimeout(10000);
+     if (!client.connect("exultant-plum-mandolin.glitch.me", 80)) {
+       Serial.println(F("Connection failed"));
+       return false;
      }
  
-     delete cur;
-     conn.close();
-   } else {
-     Serial.println("Erro ao conectar ao banco3.");
-     lcd2.println("Erro no banco");
-   }
+     Serial.println(F("Connected2!"));
+     lcd2.println(F("Connected!"));
  
-   return Nome_Email;
+     // Send HTTP request
+     client.println(F("GET / HTTP/1.1"));
+     client.println(F("Host: exultant-plum-mandolin.glitch.me"));
+     client.println(F("User-Agent: ArduinoEthernet/1.0"));
+ 
+     client.println(F("Connection: close"));
+     if (client.println() == 0) {
+       Serial.println(F("Failed to send request"));
+       client.stop();
+       return false;
+     }
+ 
+     // Check HTTP status
+     char status[32] = { 0 };
+     client.readBytesUntil('\r', status, sizeof(status));
+     if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
+       Serial.print(F("Unexpected response: "));
+       lcd2.print(F("Unexpected response: "));
+       Serial.println(status);
+       lcd2.println(status);
+       client.stop();
+       return false;
+     }
+ 
+     // Skip HTTP headers
+     char endOfHeaders[] = "\r\n\r\n";
+     if (!client.find(endOfHeaders)) {
+       Serial.println(F("Invalid response"));
+       lcd2.println(F("Invalid response"));
+       client.stop();
+       return false;
+     }
+ 
+     // Allocate the JSON document
+     // Use arduinojson.org/v6/assistant to compute the capacity.
+     const size_t capacity = 2048;
+     DynamicJsonDocument doc(capacity);
+ 
+     // Parse JSON object
+     DeserializationError error = deserializeJson(doc, client);
+     if (error) {
+       Serial.print(F("deserializeJson() failed: "));
+       lcd2.print(F("deserializeJson() failed: "));
+       Serial.println(error.f_str());
+       lcd2.println(error.f_str());
+       client.stop();
+       return false;
+     }
+     JsonObject Usuario = doc["usuarios"][index].as<JsonObject>();
+     // Extract values
+     Serial.println(F("Response:"));
+     lcd2.println(F("Response:"));
+     String email = Usuario["email"].as<String>();
+     int id = Usuario["idBiometria"].as<int>();
+ 
+     if (id == codigoDigitado) {
+       return true;
+     }
+     index++;
+   }
+   return false;
+ 
+   client.stop();
  }
  
+ String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
+ 
+   String* Nome_Email = new String[3];
+   int index = 0;
+   while (true) {
+     EthernetClient client;
+     
+     client.setTimeout(10000);
+     if (!client.connect("exultant-plum-mandolin.glitch.me", 80)) {
+       Serial.println(F("Connection failed"));
+       lcd2.println(F("Connection failed"));
+       Nome_Email[0] = "Erro";
+     }
+ 
+     Serial.println(F("Connected3!"));
+     lcd2.println(F("Connected!"));
+ 
+     // Send HTTP request https://<your-deployment-host>
+     client.println(F("GET / HTTP/1.0"));
+     client.println(F("Host: exultant-plum-mandolin.glitch.me"));
+     client.println(F("User-Agent: ArduinoEthernet/1.0"));
+ 
+     client.println(F("Connection: close"));
+     if (client.println() == 0) {
+       Serial.println(F("Failed to send request"));
+       lcd2.println(F("Failed to send request"));
+       client.stop();
+       Nome_Email[0] = "Erro";
+     }
+ 
+     // Check HTTP status
+     char status[32] = { 0 };
+     client.readBytesUntil('\r', status, sizeof(status));
+     if (strcmp(status, "HTTP/1.0 200 OK") != 0) {
+       Serial.print(F("Unexpected resdsponse: "));
+       lcd2.print(F("Unexpected resdsponse: "));
+       Serial.println(status);
+       lcd2.println(status);
+       client.stop();
+       Nome_Email[0] = "Erro";
+     }
+ 
+     // Skip HTTP headers
+     char endOfHeaders[] = "\r\n\r\n";
+     if (!client.find(endOfHeaders)) {
+       Serial.println(F("Invalid response"));
+       lcd2.println(F("Invalid response"));
+       client.stop();
+       Nome_Email[0] = "Erro";
+     }
+ 
+     // Allocate the JSON document
+     // Use arduinojson.org/v6/assistant to compute the capacity.
+     const size_t capacity = 2048;
+     DynamicJsonDocument doc(capacity);
+ 
+     // Parse JSON object
+     DeserializationError error = deserializeJson(doc, client);
+     if (error) {
+       Serial.print(F("deserializeJson() failed: "));
+       lcd2.print(F("deserializeJson() failed: "));
+       Serial.println(error.f_str());
+       lcd2.println(error.f_str());
+       client.stop();
+       Nome_Email[0] = "Erro";
+     }
+     JsonObject Usuario = doc["usuarios"][index].as<JsonObject>();
+     // Extract values
+     Serial.println(F("Response:"));
+     lcd2.println(F("Response:"));
+     String email = Usuario["email"].as<String>();
+     String nome = Usuario["nome"].as<String>();
+     String foto = Usuario["foto"].as<String>();
+     int id = Usuario["idBiometria"].as<int>();
+ 
+     if (id == idBiometria) {
+       Nome_Email[0] = nome;
+       Nome_Email[1] = email;
+       Nome_Email[2] = foto;
+       return Nome_Email;
+       break;
+     }
+     index++;
+   }
+   client.stop();
+ }
  uint8_t getFingerprintID() {      //Função que verifica se o dedo que o usuário colocou sobre o leitor existe na sua memória
    uint8_t p = finger.getImage();  //pega a imagem da biometria
    switch (p) {
