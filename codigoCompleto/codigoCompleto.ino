@@ -146,7 +146,7 @@
  String senhaDigitada;
  
  int flag=0;
- 
+ bool alternarSensor = false;
  void setup()
  {
    lcd.init();          // Inicia o módulo lcd
@@ -281,8 +281,10 @@
     }
     
    }
+   
    getFingerprintIDez();
-  //  getFingerprintIDez2();
+  // delay(500); // ou até menos
+  // getFingerprintIDez2();
    char key = keypad.getKey();  //Aqui pegamos a tecla digitada no teclado
  
    if (key) {
@@ -389,8 +391,8 @@ void enviarParaApi(String nome, String email, String foto, int idbiometria, Stri
   client.setTimeout(10000);
 
   if (!client.connect("exultant-plum-mandolin.glitch.me", 80)) {
-    Serial.println(F("Connection failed"));
-    lcd2.println(F("Connection failed"));
+    Serial.println(F("Connection failed2"));
+    lcd2.println(F("Connection faile2d"));
     return;
   }
 
@@ -523,8 +525,8 @@ client.print(jsonStrings);  // importante: sem println
      
      client.setTimeout(10000);
      if (!client.connect("exultant-plum-mandolin.glitch.me", 80)) {
-       Serial.println(F("Connection failed"));
-       lcd2.println(F("Connection failed"));
+       Serial.println(F("Connection faildasdsed"));
+       lcd2.println(F("Connection failsadsadsaed"));
        Nome_Email[0] = "Erro";
      }
  
@@ -812,7 +814,7 @@ client.print(jsonStrings);  // importante: sem println
  
    String* dados = consultarApiAcesso(finger.fingerID);
    if (dados[0] != "Erro") {
-     enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Entrou");
+     enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Saiu");
      
    }
    
