@@ -282,7 +282,7 @@
     
    }
    getFingerprintIDez();
-   getFingerprintIDez2();
+  //  getFingerprintIDez2();
    char key = keypad.getKey();  //Aqui pegamos a tecla digitada no teclado
  
    if (key) {
@@ -373,75 +373,68 @@
  }
    return senha;
  }
- void enviarParaApi(String nome, String email, String foto, int idBiometria, String tipo) {  //Função para enviar o acesso para a API
-   DynamicJsonDocument envia(2048);
- 
-   envia["nome"] = nome;                //Cria o campo nome no arquivo json que será enviado
-   envia["email"] = email;              //Cria o campo email no arquivo json que será enviado
-   envia["idBiometria"] = idBiometria;  //Cria o campo idMatricula no arquivo json que será enviado
-   envia["foto"] = foto;
-   envia["tipo"] = tipo;
-   String jsonStrings;                 //Cria uma variavel
-   serializeJson(envia, jsonStrings);  //Atribui os valores criados anteriormente a variavel criada agora
-   // Serial.println(jsonStrings);
- 
-   EthernetClient client;  //inicia o client, a api
-   client.setTimeout(10000);
-   if (!client.connect("exultant-plum-mandolin.glitch.me", 80)) {  //Se não existir uma conexão exibe que a conexão falhou
-     Serial.println(F("Connection failed"));
-     lcd2.println(F("Connection failed"));
-     
-     return;
-   }
- 
-   Serial.println(F("Connected1!"));
-   lcd2.println(F("Connected!"));
- 
-   // Send HTTP request
-   client.println(F("POST /addacessos HTTP/1.0"));                      //Prepara para enviar um POST pelo link /addacessos
-   client.println(F("Host: exultant-plum-mandolin.glitch.me"));  // Define o link do host
-   client.println(F("Content-Type: application/json"));                 //Define o formato que será enviado como json
-   client.print(F("Content-Length: "));
-   client.println(jsonStrings.length());
-   client.println(F("Connection: close"));
-   client.println();
- 
-   client.println(jsonStrings);  //Envia os dados para a API
- 
-   if (client.println() == 0) {  // Verifica se a requisição foi feita com sucesso
-     Serial.println(F("Failed to send request"));
-     lcd2.println(F("Failed to send request"));
-     
-     client.stop();
-     return;
-   }
- 
-   char status[32] = { 0 };
-   client.readBytesUntil('\r', status, sizeof(status));
-   if (strcmp(status, "HTTP/1.1 200 OK") != 0) {  // Verifica se os dados foram enviados
-     Serial.print(F("Unexpected response: "));
-     lcd2.print(F("Unexpected response: "));
-     Serial.println(status);
-     lcd2.println(status);
-     client.stop();
-     return;
-   } else {  //Se forem enviados entra nesse else
-     Serial.println("Adicionado com sucesso");
-     lcd2.println("Adicionado com sucesso");
-     
-   }
- 
-   char endOfHeaders[] = "\r\n\r\n";
-   if (!client.find(endOfHeaders)) {
-     Serial.println(F("Invalid response"));
-     lcd2.println(F("Invalid response"));
-     client.stop();
-     return;
-   }
- 
-   client.stop();
- }
- 
+void enviarParaApi(String nome, String email, String foto, int idbiometria, String tipo) {
+  DynamicJsonDocument envia(2048);
+
+  envia["nome"] = nome;
+  envia["email"] = email;
+  envia["idbiometria"] = idbiometria;
+  envia["foto"] = foto;
+  envia["tipo"] = tipo;
+
+  String jsonStrings;
+  serializeJson(envia, jsonStrings);
+
+  EthernetClient client;
+  client.setTimeout(10000);
+
+  if (!client.connect("exultant-plum-mandolin.glitch.me", 80)) {
+    Serial.println(F("Connection failed"));
+    lcd2.println(F("Connection failed"));
+    return;
+  }
+
+  Serial.println(F("Connected!"));
+  lcd2.println(F("Connected!"));
+
+ client.println(F("POST /addacessos HTTP/1.1"));
+client.println(F("Host: exultant-plum-mandolin.glitch.me"));
+client.println(F("Content-Type: application/json"));
+client.println(F("User-Agent: ArduinoEthernet/1.0"));
+client.print(F("Content-Length: "));
+client.println(jsonStrings.length());
+client.println(F("Connection: close"));
+client.println();  // fim dos headers
+
+client.print(jsonStrings);  // importante: sem println
+
+
+  // Verifica status da resposta
+  char status[32] = { 0 };
+  client.readBytesUntil('\r', status, sizeof(status));
+  if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
+    Serial.print(F("Unexpected response: "));
+    Serial.println(status);
+    lcd2.print(F("Unexpected response: "));
+    lcd2.println(status);
+    client.stop();
+    return;
+  }
+
+  // Limpa os headers restantes
+  if (!client.find("\r\n\r\n")) {
+    Serial.println(F("Invalid response"));
+    lcd2.println(F("Invalid response"));
+    client.stop();
+    return;
+  }
+
+  Serial.println("Adicionado com sucesso");
+  lcd2.println("Adicionado com sucesso");
+
+  client.stop();
+}
+
  bool consultarApi(int codigoDigitado) {  // função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
    int index = 0;
    while (true) {
@@ -508,8 +501,9 @@
      Serial.println(F("Response:"));
      lcd2.println(F("Response:"));
      String email = Usuario["email"].as<String>();
-     int id = Usuario["idBiometria"].as<int>();
- 
+     int id = Usuario["idbiometria"].as<int>();
+    Serial.println(id);
+    Serial.println(email);
      if (id == codigoDigitado) {
        return true;
      }
@@ -520,7 +514,7 @@
    client.stop();
  }
  
- String* consultarApiAcesso(int idBiometria) {  // função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
+ String* consultarApiAcesso(int idbiometria) {  // função que vai fazer o tratamento dos dados da API, recebe como parametro o ID que o usuário digitou
  
    String* Nome_Email = new String[3];
    int index = 0;
@@ -538,7 +532,7 @@
      lcd2.println(F("Connected!"));
  
      // Send HTTP request https://<your-deployment-host>
-     client.println(F("GET / HTTP/1.0"));
+     client.println(F("GET / HTTP/1.1"));
      client.println(F("Host: exultant-plum-mandolin.glitch.me"));
      client.println(F("User-Agent: ArduinoEthernet/1.0"));
  
@@ -553,7 +547,7 @@
      // Check HTTP status
      char status[32] = { 0 };
      client.readBytesUntil('\r', status, sizeof(status));
-     if (strcmp(status, "HTTP/1.0 200 OK") != 0) {
+     if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
        Serial.print(F("Unexpected resdsponse: "));
        lcd2.print(F("Unexpected resdsponse: "));
        Serial.println(status);
@@ -593,9 +587,9 @@
      String email = Usuario["email"].as<String>();
      String nome = Usuario["nome"].as<String>();
      String foto = Usuario["foto"].as<String>();
-     int id = Usuario["idBiometria"].as<int>();
+     int id = Usuario["idbiometria"].as<int>();
  
-     if (id == idBiometria) {
+     if (id == idbiometria) {
        Nome_Email[0] = nome;
        Nome_Email[1] = email;
        Nome_Email[2] = foto;
@@ -694,8 +688,9 @@
  
  
    String* dados = consultarApiAcesso(finger.fingerID);
+  
    if (dados[0] != "Erro") {
-     enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Saiu");
+     enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Entrou");
      
    }
    
@@ -708,6 +703,7 @@
    
    lcd.setCursor(2, 0);
    Serial.println("Até mais");
+   Serial.println(finger.fingerID);
    lcd.setCursor(0, 1);
    Serial.println(dados[0]);
    // Serial.print(nome);
@@ -816,7 +812,7 @@
  
    String* dados = consultarApiAcesso(finger.fingerID);
    if (dados[0] != "Erro") {
-     enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Saiu");
+     enviarParaApi(dados[0], dados[1], dados[2], finger.fingerID, "Entrou");
      
    }
    
